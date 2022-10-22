@@ -1,7 +1,6 @@
 __pycache__/*
 .vscode/*
 cleaned_image_data/*
-data/*
 image_data/*
 keys/*
 model_evaluation/*

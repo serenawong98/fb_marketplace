@@ -79,7 +79,7 @@ def accuracy(model, dataset):
         feature, label = data
         feature = feature[None, :]
         prediction = torch.argmax(model(feature))
-        print(f'Label: {label}, Prediction: {prediction}')
+        # print(f'Label: {label}, Prediction: {prediction}')
         if int(prediction) == label:
             accurate_predictions+=1
     
