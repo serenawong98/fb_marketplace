@@ -71,21 +71,37 @@ def train(model, dataset, lr, epochs=10, model_name = 'test'):
             batch_idx += 1
         save_model(model, model_name)
 
-def accuracy(model, dataset):
-    num_of_data = len(dataset)
-    accurate_predictions = 0
-
-    for data in dataset:
-        feature, label = data
-        feature = feature[None, :]
-        prediction = torch.argmax(model(feature))
-        # print(f'Label: {label}, Prediction: {prediction}')
-        if int(prediction) == label:
-            accurate_predictions+=1
+# def accuracy(model, dataset):
+#     num_of_data = len(dataset)
+#     accurate_predictions = 0
+#     model.eval()
+#     for data in dataset:
+#         feature, label = data
+#         feature = feature[None, :]
+#         prediction = torch.argmax(model(feature))
+#         # print(f'Label: {label}, Prediction: {prediction}')
+#         if int(prediction) == label:
+#             accurate_predictions+=1
     
-    model_accuracy = accurate_predictions/num_of_data
-    print(model_accuracy)
-    return model_accuracy
+#     model_accuracy = accurate_predictions/num_of_data
+#     model.train()
+#     print(model_accuracy)
+#     return model_accuracy
+
+def accuracy(model, test_loader):
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        model.eval()
+        for data in test_loader:
+            images, labels = data
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    model.train()
+    print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
 
 def save_model(model, model_name):
     try:
