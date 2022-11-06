@@ -52,13 +52,14 @@ class Resnet50(torch.nn.Module):
     def forward(self, X):
         return self.resnet50(X)
 
-def train(model, dataset, lr, epochs=10, model_name = 'test'):
+def train(model, dataset, lr, epochs=10, model_name = 'test', wd = 0):
 
-    optimiser = torch.optim.SGD(model.parameters(), lr = lr)
+    optimiser = torch.optim.Adam(model.parameters(), lr = lr, weight_decay=wd)
 
     writer =  SummaryWriter()
     batch_idx = 0
     for epoch in range(epochs):
+        print(epoch)
         for batch in dataset:
             features, labels = batch
             prediction = model(features)

@@ -174,7 +174,7 @@ class CleanImage():
     def __channel_standardisation(self, image:Image, mode):
         return image.convert(mode)
 
-    def process_images(self, crop_img:bool = False, pad_img:bool = True, resized_pixel:tuple = (25,25), greyscale:bool = False, mode:str = 'L'):
+    def process_images(self, crop_img:bool = False, pad_img:bool = True, resized_pixel:tuple = (128,128), greyscale:bool = False, mode:str = 'L', replace:bool = False):
 
         for img in self.img_file_list:
             img_instance = self.__create_img_instance(img)
@@ -191,10 +191,17 @@ class CleanImage():
 
             img_instance = self.__channel_standardisation(img_instance, mode)
             parent_directory = os.path.dirname(self.img_folder_path)
-            parent_directory2 = os.path.dirname(parent_directory)
-            cleaned_image_path = os.path.join(parent_directory2, "cleaned_image_data", img)
-            img_instance.save(cleaned_image_path)
-        return os.path.join(parent_directory2, "cleaned_image_data")
+            if replace == False:
+                parent_directory2 = os.path.dirname(parent_directory)
+                cleaned_image_folder = os.path.join(parent_directory2, "cleaned_image_data")
+                cleaned_image_path = os.path.join(cleaned_image_folder, img)
+                img_instance.save(cleaned_image_path)
+            else:
+                cleaned_image_folder = self.img_folder_path
+                cleaned_image_path = os.path.join(cleaned_image_folder, img)
+                img_instance.save(cleaned_image_path)
+
+        return cleaned_image_folder
 
 
 
