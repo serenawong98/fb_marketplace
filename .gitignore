@@ -9,3 +9,5 @@ fb_data_pipeline/__pycache__/*
 fb_data_pipeline/model_evaluation/*
 fb_data_pipeline/runs/*
 fb_data_pipeline/data/*
+data/*
+datasets/*

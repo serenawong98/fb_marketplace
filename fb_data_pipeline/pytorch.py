@@ -52,7 +52,7 @@ class Resnet50(torch.nn.Module):
     def forward(self, X):
         return self.resnet50(X)
 
-def train(model, dataset, lr, epochs=10, model_name = 'test', wd = 0):
+def train(model, dataset, lr, epochs=10, model_name = 'test', wd = 0, test_dataset = None):
 
     optimiser = torch.optim.Adam(model.parameters(), lr = lr, weight_decay=wd)
 
@@ -70,6 +70,8 @@ def train(model, dataset, lr, epochs=10, model_name = 'test', wd = 0):
             optimiser.zero_grad()
             writer.add_scalar('loss', loss.item(), batch_idx)
             batch_idx += 1
+        if test_dataset != None:
+            accuracy(model, test_dataset)
         save_model(model, model_name)
 
 # def accuracy(model, dataset):
