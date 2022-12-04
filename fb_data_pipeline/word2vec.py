@@ -6,6 +6,7 @@ from torchtext.vocab import build_vocab_from_iterator
 from functools import partial
 from torch.optim.lr_scheduler import LambdaLR
 from torch.optim import Adam
+from torch.utils.tensorboard import SummaryWriter
 import torch.nn as nn
 import numpy as np
 import json
@@ -134,8 +135,12 @@ class Trainer:
             pass
 
     def train(self):
+
+        writer =  SummaryWriter()
+        batch_idx = 0
+    
         for epoch in range(self.epochs):
-            self._train_epoch()
+            self._train_epoch(writer, batch_idx)
             self._validate_epoch()
             print(
                 "Epoch: {}/{}, Train Loss={:.5f}, Val Loss{:.5f}".format(
@@ -146,12 +151,14 @@ class Trainer:
                 )
             )
 
+            batch_idx += 1
+
             self.lr_scheduler.step()
 
             if self.checkpoint_frequency:
                 self._save_checkpoint(epoch)
     
-    def _train_epoch(self):
+    def _train_epoch(self, writer, batch_idx):
         self.model.train()
         running_loss = []
 
@@ -164,6 +171,7 @@ class Trainer:
             loss = self.criterion(outputs, labels)
             loss.backward()
             self.optimizer.step()
+            writer.add_scalar('loss', loss.item(), batch_idx)
 
             running_loss.append(loss.item())
 

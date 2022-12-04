@@ -74,22 +74,6 @@ def train(model, dataset, lr, epochs=10, model_name = 'test', wd = 0, test_datas
             accuracy(model, test_dataset)
         save_model(model, model_name)
 
-# def accuracy(model, dataset):
-#     num_of_data = len(dataset)
-#     accurate_predictions = 0
-#     model.eval()
-#     for data in dataset:
-#         feature, label = data
-#         feature = feature[None, :]
-#         prediction = torch.argmax(model(feature))
-#         # print(f'Label: {label}, Prediction: {prediction}')
-#         if int(prediction) == label:
-#             accurate_predictions+=1
-    
-#     model_accuracy = accurate_predictions/num_of_data
-#     model.train()
-#     print(model_accuracy)
-#     return model_accuracy
 
 def accuracy(model, test_loader):
     correct = 0
