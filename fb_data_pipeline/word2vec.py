@@ -151,8 +151,6 @@ class Trainer:
                 )
             )
 
-            batch_idx += 1
-
             self.lr_scheduler.step()
 
             if self.checkpoint_frequency:
@@ -177,6 +175,7 @@ class Trainer:
 
             if i == self.train_steps:
                 break
+            batch_idx += 1
         
         epoch_loss = np.mean(running_loss)
         self.loss["train"].append(epoch_loss)
