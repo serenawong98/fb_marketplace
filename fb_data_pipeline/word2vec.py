@@ -1,7 +1,7 @@
 from torchtext.datasets import WikiText103, IMDB
 from torchtext.data import to_map_style_dataset
 from torchtext.data.utils import get_tokenizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchtext.vocab import build_vocab_from_iterator
 from functools import partial
 from torch.optim.lr_scheduler import LambdaLR
@@ -12,13 +12,28 @@ import numpy as np
 import json
 import torch
 import os
+import clean_data
 
 MIN_FREQUENCY = 50
 CBOW_N_WORDS = 4
 MAX_SEQUENCE_LENGTH = 250
 EMBED_DIMENSION = 300
 EMBED_MAX_NORM = 1
+EPOCH = 10
 
+class FbItemDescript(Dataset):
+    def __init__(self, dataframe):
+        super().__init__()
+        self.data = dataframe
+
+    def __getitem__(self, index):
+        data_row = self.data.iloc[index]
+        features = data_row[1]
+        labels = torch.tensor(data_row[0])
+        return(features, labels)
+
+    def __len__(self):
+        return len(self.data)
 
 def get_data_iterator(ds_type,data_dir):
     data_iter = WikiText103(root=data_dir, split=(ds_type))
@@ -29,10 +44,19 @@ def get_english_tokenizer():
     tokenizer = get_tokenizer("basic_english", language="en")
     return tokenizer
 
-def build_vocab(data_iter, tokenizer):
+def yield_tokens(data_iter):
+    tokenizer = get_tokenizer('basic_english')
+    for text, _ in data_iter:
+        yield tokenizer(text)
+
+def build_vocab(data_iter, tokenizer, ds_iter):
+    if ds_iter == None:
+        token_data_iter = map(tokenizer, data_iter)
+    else:
+        token_data_iter = yield_tokens(data_iter)
     
     vocab = build_vocab_from_iterator(
-        map(tokenizer, data_iter),
+        token_data_iter,
         specials=["<unk>"],
         min_freq=MIN_FREQUENCY,
     )
@@ -42,7 +66,8 @@ def build_vocab(data_iter, tokenizer):
 def collate_cbow(batch, text_pipeline):
     batch_input = []
     batch_output = []
-    for text in batch:
+    # get rid of ,_ for dataloaders
+    for text, _ in batch:
         text_tokens_ids = text_pipeline(text)
 
         if len(text_tokens_ids) < CBOW_N_WORDS*2+1:
@@ -61,12 +86,16 @@ def collate_cbow(batch, text_pipeline):
     batch_output = torch.tensor(batch_output, dtype=torch.long)
     return batch_input, batch_output
 
-def get_dataloader_and_vocab(ds_type, data_dir, batch_size, shuffle, vocab=None):
-    data_iter = get_data_iterator(ds_type, data_dir)
+def get_dataloader_and_vocab(ds_type, data_dir, batch_size, shuffle, vocab=None, ds_iter=None):
+    if ds_iter == None:
+        data_iter = get_data_iterator(ds_type, data_dir)
+    else:
+        data_iter = ds_iter
+
     tokenizer = get_english_tokenizer()
 
     if not vocab:
-        vocab = build_vocab(data_iter, tokenizer)
+        vocab = build_vocab(data_iter, tokenizer, ds_iter)
 
     text_pipeline = lambda x: vocab(tokenizer(x))
 
@@ -232,12 +261,25 @@ def get_lr_scheduler(optimizer, total_epochs: int, verbose: bool = True):
 
 if __name__ == "__main__":
 
+    # filepath = os.path.join(os.getcwd(), 'data', "vocab_text.csv")
+    fb_clean = clean_data.CleanTabular(os.path.join(os.getcwd(), 'data/Products.csv'))
+    fb_clean.slice_df(series_to_keep = ['product_description', 'category'])
+    fb_clean.clean_to_general_category('category')
+    fb_clean.clean_to_category_type('category', ohe=False)
+
+    word2vec_dataset = FbItemDescript(fb_clean.df)
+    # features, labels =  word2vec_dataset[0]
+    # print(len(word2vec_dataset))
+
+    train_set, test_set = torch.utils.data.random_split(word2vec_dataset, [6656, 500])
+
     train_loader, vocab = get_dataloader_and_vocab(
         ds_type="train",
         data_dir="data/",
         batch_size=96,
         shuffle=True,
         vocab=None,
+        ds_iter = train_set,
     )
 
     val_loader, _ = get_dataloader_and_vocab(
@@ -246,6 +288,8 @@ if __name__ == "__main__":
         batch_size=96,
         shuffle=True,
         vocab=None,
+        ds_iter = test_set,
+
     )
 
     vocab_size = len(vocab.get_stoi())
@@ -254,7 +298,7 @@ if __name__ == "__main__":
     model = CBOW_MODEL(vocab_size)
     criterion = nn.CrossEntropyLoss()
     optimizer = Adam(model.parameters(), lr = 0.025)
-    lr_scheduler = get_lr_scheduler(optimizer, 5, verbose=True)
+    lr_scheduler = get_lr_scheduler(optimizer, EPOCH, verbose=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -262,7 +306,7 @@ if __name__ == "__main__":
 
     trainer = Trainer(
         model,
-        epochs=5,
+        epochs=EPOCH,
         train_dataloader=train_loader,
         train_steps= None,
         val_dataloader= val_loader,

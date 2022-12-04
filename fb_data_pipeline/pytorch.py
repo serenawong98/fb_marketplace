@@ -14,11 +14,8 @@ class FbDataset(Dataset):
 
     def __getitem__(self, index):
         data_row = self.data.iloc[index]
-        # features = data_row[:label_column_index]+data_row[label_column_index+1:]
-        # labels = data_row[label_column_index-1]
         features = torch.tensor(data_row[0])
         labels = torch.tensor(data_row[1])
-        # return(features, labels)
         return(features, labels)
 
     def __len__(self):
